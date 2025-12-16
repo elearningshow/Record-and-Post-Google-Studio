@@ -1,0 +1,8 @@
+{
+  "name": "Record and Post",
+  "description": "A session transcription and content generation tool integrating Google Gemini API.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
