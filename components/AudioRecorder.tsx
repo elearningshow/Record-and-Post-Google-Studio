@@ -1,1 +1,91 @@
-tsx<br>import React, { useState } from 'react';<br><br>const AudioRecorder: React.FC = () => {<br>  const [recording, setRecording] = useState(false);<br>  const [audioUrl, setAudioUrl] = useState<string | null>(null);<br>  let mediaRecorder: MediaRecorder | null = null;<br>  let chunks: Blob[] = [];<br><br>  const startRecording = async () => {<br>    try {<br>      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });<br>      mediaRecorder = new MediaRecorder(stream);<br>      mediaRecorder.ondataavailable = (event) => {<br>        chunks.push(event.data);<br>      };<br>      mediaRecorder.onstop = () => {<br>        const blob = new Blob(chunks, { type: 'audio/webm' });<br>        const url = URL.createObjectURL(blob);<br>        setAudioUrl(url);<br>        chunks = [];<br>      };<br>      mediaRecorder.start();<br>      setRecording(true);<br>      console.log('Recording started');<br>    } catch (error: any) {<br>      console.error(error);<br>      let message = 'Unknown error accessing microphone';<br>      if (error.name === 'NotAllowedError') {<br>        message = 'Microphone access denied. Allow it in site settings, reload, and tap Start again.';<br>      } else if (error.name === 'NotSecureContext') {<br>        message = 'Requires HTTPS. Test on a secure URL.';<br>      } else if (error.message) {<br>        message = error.message;<br>      }<br>      alert(message);<br>    }<br>  };<br><br>  const stopRecording = () => {<br>    if (mediaRecorder && recording) {<br>      mediaRecorder.stop();<br>      mediaRecorder.stream.getTracks().forEach(track => track.stop());<br>      setRecording(false);<br>    }<br>  };<br><br>  return (<br>    <div><br>      <button onClick={startRecording} disabled={recording}><br>        Start Recording<br>      </button><br>      <button onClick={stopRecording} disabled={!recording}><br>        Stop Recording<br>      </button><br>      {audioUrl && (<br>        <audio controls src={audioUrl} /><br>      )}<br>    </div><br>  );<br>};<br><br>export default AudioRecorder;<br>
+import React, { useState, useRef } from 'react';
+
+const AudioRecorder: React.FC = () => {
+  const [recording, setRecording] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        chunksRef.current.push(event.data);
+      };
+      
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        chunksRef.current = [];
+      };
+      
+      mediaRecorderRef.current.start();
+      setRecording(true);
+      console.log('Recording started');
+    } catch (error: any) {
+      console.error(error);
+      let message = 'Unknown error accessing microphone';
+      
+      if (error.name === 'NotAllowedError') {
+        message = 'Microphone access denied. Allow it in site settings, reload, and tap Start again.';
+      } else if (error.name === 'NotSecureContext') {
+        message = 'Requires HTTPS. Test on a secure URL.';
+      } else if (error.message) {
+        message = error.message;
+      }
+      
+      alert(message);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && recording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      setRecording(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h2>Audio Recorder</h2>
+      <div style={{ marginBottom: '10px' }}>
+        <button 
+          onClick={startRecording} 
+          disabled={recording}
+          style={{ 
+            padding: '10px 20px', 
+            marginRight: '10px',
+            fontSize: '16px',
+            cursor: recording ? 'not-allowed' : 'pointer'
+          }}
+        >
+          Start Recording
+        </button>
+        <button 
+          onClick={stopRecording} 
+          disabled={!recording}
+          style={{ 
+            padding: '10px 20px',
+            fontSize: '16px',
+            cursor: !recording ? 'not-allowed' : 'pointer'
+          }}
+        >
+          Stop Recording
+        </button>
+      </div>
+      {recording && <p style={{ color: 'red' }}>🔴 Recording in progress...</p>}
+      {audioUrl && (
+        <div style={{ marginTop: '20px' }}>
+          <p>Recording complete:</p>
+          <audio controls src={audioUrl} style={{ width: '100%' }} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AudioRecorder;
